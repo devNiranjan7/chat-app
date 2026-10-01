@@ -42,13 +42,40 @@ const Login = () => {
                 toast.success("Login successful");
             }
         } catch (error) {
-            toast.error(error.message);
+            switch (error.code) {
+                case "auth/email-already-in-use":
+                    toast.error("Email is already registered");
+                    break;
+
+                case "auth/invalid-email":
+                    toast.error("Enter a valid email address");
+                    break;
+
+                case "auth/weak-password":
+                    toast.error("Password should be at least 6 characters");
+                    break;
+
+                case "auth/invalid-credential":
+                    toast.error("Invalid email or password");
+                    break;
+
+                case "auth/user-not-found":
+                    toast.error("No account found with this email");
+                    break;
+
+                case "auth/wrong-password":
+                    toast.error("Invalid email or password");
+                    break;
+
+                default:
+                    toast.error("Something went wrong. Please try again");
+            }
         }
     };
 
     const handleForgotPassword = async () => {
         if (!email.trim()) {
-            toast.error("Enter you email first");
+            toast.error("Enter your email first");
             return;
         }
         try {

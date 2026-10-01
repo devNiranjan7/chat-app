@@ -19,7 +19,7 @@ import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
 
 const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
-    const { user } = useContext(AppContext);
+    const { user,userData } = useContext(AppContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
     const chatMessagesRef = useRef(null);
@@ -177,7 +177,7 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                                 <img
                                     src={
                                         message.senderId === user.uid
-                                            ? user.photoURL ||
+                                            ? userData.profileImage ||
                                               assets.profile_img
                                             : selectedFriend.profileImage ||
                                               assets.profile_img

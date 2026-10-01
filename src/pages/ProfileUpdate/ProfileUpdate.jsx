@@ -14,6 +14,17 @@ const ProfileUpdate = () => {
     const [image, setImage] = useState(null);
     const [name, setName] = useState("");
     const [bio, setBio] = useState("");
+    const [previewUrl, setPreviewUrl] = useState("");
+
+    useEffect(() => {
+    if (!image) {
+        setPreviewUrl("");
+        return;
+    }
+    const url = URL.createObjectURL(image);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+}, [image]);
 
     useEffect(() => {
         if (userData) {
@@ -64,10 +75,7 @@ const ProfileUpdate = () => {
                         />
                         <img
                             src={
-                                image
-                                    ? URL.createObjectURL(image)
-                                    : userData?.profileImage ||
-                                      assets.avatar_icon
+                                previewUrl || userData?.profileImage || assets.avatar_icon
                             }
                             alt="avatar"
                         />
@@ -90,9 +98,7 @@ const ProfileUpdate = () => {
                 <img
                     className="logo"
                     src={
-                        image
-                            ? URL.createObjectURL(image)
-                            : userData?.profileImage || assets.logo_icon
+                        previewUrl || userData?.profileImage || assets.logo_icon
                     }
                     alt="logo"
                 />
