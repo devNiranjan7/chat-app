@@ -99,8 +99,9 @@
     max-width: 200px;
     font-size: 11px;
     font-weight: 300;
-    border-radius: 8px 8px 0px 8px;
+    border-radius: 8px 8px 0 8px;
     margin-bottom: 30px;
+    overflow-wrap: anywhere;
 }
 
 .r-msg .msg {
@@ -157,4 +158,13 @@
         cursor: pointer;
         padding: 0;
     }
+}
+
+.chat-box {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.chat-msg {
+    min-width: 0;
 }
