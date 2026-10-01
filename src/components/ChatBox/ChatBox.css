@@ -131,3 +131,30 @@
     opacity: 0.5;
     cursor: default;
 }
+
+.back-button {
+    display: none;
+}
+
+.no-chat {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    color: #9f9f9f;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .back-button {
+        display: block;
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #393939;
+        cursor: pointer;
+        padding: 0;
+    }
+}

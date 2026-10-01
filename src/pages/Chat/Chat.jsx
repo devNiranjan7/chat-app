@@ -6,16 +6,27 @@ import "./Chat.css";
 
 const Chat = () => {
     const [selectedFriend, setSelectedFriend] = useState(null);
+    const [showProfile, setShowProfile] = useState(false);
 
     return (
         <div className="chat">
-            <div className="chat-container">
+            <div
+                className={`chat-container ${
+                    selectedFriend ? "friend-selected" : ""
+                } ${showProfile ? "profile-open" : ""}`}
+            >
                 <LeftSidebar
                     selectedFriend={selectedFriend}
-                    setSelectedFriend={setSelectedFriend}
+                    setSelectedFriend={(friend) => {
+                        setSelectedFriend(friend);setShowProfile(false);}}
                 />
-                <ChatBox selectedFriend={selectedFriend} />
-                <RightSidebar selectedFriend={selectedFriend} />
+                <ChatBox
+                    selectedFriend={selectedFriend}
+                    setSelectedFriend={setSelectedFriend}
+                    setShowProfile={setShowProfile}
+                />
+                <RightSidebar selectedFriend={selectedFriend} showProfile={showProfile}
+    setShowProfile={setShowProfile} />
             </div>
         </div>
     );

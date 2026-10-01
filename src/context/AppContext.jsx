@@ -22,6 +22,8 @@ const AppContextProvider = ({ children }) => {
                     }
                 });
             } else {
+                unsubscribeUserData();
+                unsubscribeUserData = () => {};
                 setUserData(null);
             }
             setLoading(false);

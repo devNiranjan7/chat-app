@@ -100,7 +100,7 @@
     font-size: 12px;
 }
 
-.rs button {
+.rs button:not(.rs-back){
     flex-shrink: 0;
     align-self: center;
     margin: 15px 0 20px;

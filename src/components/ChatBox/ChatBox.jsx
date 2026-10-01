@@ -18,7 +18,7 @@ import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
 
-const ChatBox = ({ selectedFriend }) => {
+const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
     const { user } = useContext(AppContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
@@ -134,6 +134,7 @@ const ChatBox = ({ selectedFriend }) => {
     return (
         <div className="chat-box">
             <div className="chat-user">
+                <button className="back-button" onClick={()=>setSelectedFriend(null)}>&lt;</button>
                 <img
                     src={selectedFriend?.profileImage || assets.profile_img}
                     alt="profile"
@@ -148,7 +149,7 @@ const ChatBox = ({ selectedFriend }) => {
                         />
                     )}
                 </p>
-                <img src={assets.help_icon} className="help" alt="help" />
+                <img src={assets.help_icon} className="help" alt="help" onClick={() => setShowProfile(true)}/>
             </div>
             <div className="chat-msg" ref={chatMessagesRef}>
                 {!selectedFriend && (

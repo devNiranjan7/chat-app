@@ -8,7 +8,7 @@ import "./RightSidebar.css";
 import getChatId from "../../lib/getChatId.js";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 
-const RightSidebar = ({ selectedFriend }) => {
+const RightSidebar = ({ selectedFriend, showProfile, setShowProfile }) => {
     const { user } = useContext(AppContext);
     const [media, setMedia] = useState([]);
 
@@ -42,6 +42,14 @@ const RightSidebar = ({ selectedFriend }) => {
 
     return (
         <div className="rs">
+            {showProfile && (
+                <button
+                    className="rs-back"
+                    onClick={() => setShowProfile(false)}
+                >
+                    &lt;
+                </button>
+            )}
             {!selectedFriend ? (
                 <div className="rs-empty">
                     <p>Select a friend to view their profile</p>
