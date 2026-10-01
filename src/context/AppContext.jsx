@@ -16,11 +16,20 @@ const AppContextProvider = ({ children }) => {
             setUser(currentUser);
             if (currentUser) {
                 const userRef = doc(db, "users", currentUser.uid);
-                unsubscribeUserData = onSnapshot(userRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        setUserData(snapshot.data());
-                    }
-                });
+                unsubscribeUserData = onSnapshot(
+                    userRef,
+                    (snapshot) => {
+                        if (snapshot.exists()) {
+                            setUserData(snapshot.data());
+                        } else {
+                            setUserData(null);
+                        }
+                    },
+                    (error) => {
+                        console.error("User data listener error:", error);
+                        setUserData(null);
+                    },
+                );
             } else {
                 unsubscribeUserData();
                 unsubscribeUserData = () => {};

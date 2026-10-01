@@ -10,67 +10,128 @@ import {
     arrayUnion,
     collection,
     doc,
-    getDocs,
+    getDoc,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    where,
     writeBatch,
 } from "firebase/firestore";
-
 const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
     const { user, userData } = useContext(AppContext);
     const [search, setSearch] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [showMenu, setShowMenu] = useState(false);
     const [allUsers, setAllUsers] = useState([]);
+    const [friendRequests, setFriendRequests] = useState([]);
+    const [loadingRequest, setLoadingRequest] = useState(null);
+    const [processingRequest, setProcessingRequest] = useState(null);
+    const [loggingOut, setLoggingOut] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const loadUsers = async () => {
-            try {
-                const snapshot = await getDocs(collection(db, "users"));
+        const usersRef = collection(db, "users");
+        const unsubscribe = onSnapshot(
+            usersRef,
+            (snapshot) => {
                 const users = snapshot.docs.map((doc) => ({
                     id: doc.id,
                     ...doc.data(),
                 }));
                 setAllUsers(users);
-            } catch (error) {
-                console.error(error);
+            },
+            (error) => {
+                console.error("Users listener error:", error);
+                setAllUsers([]);
                 toast.error("Failed to load users");
-            }
-        };
-        loadUsers();
+            },
+        );
+        return () => unsubscribe();
     }, []);
 
-    const handleSearch = async (e) => {
+    useEffect(() => {
+        if (!selectedFriend) return;
+        const updatedFriend = allUsers.find(
+            (item) => item.id === selectedFriend.id,
+        );
+        if (
+            updatedFriend &&
+            (updatedFriend.username !== selectedFriend.username ||
+                updatedFriend.bio !== selectedFriend.bio ||
+                updatedFriend.profileImage !== selectedFriend.profileImage)
+        ) {
+            setSelectedFriend(updatedFriend);
+        }
+    }, [allUsers, selectedFriend, setSelectedFriend]);
+
+    useEffect(() => {
+        if (!user?.uid) {
+            setFriendRequests([]);
+            return;
+        }
+        const requestsRef = collection(db, "friendRequests");
+        const requestsQuery = query(
+            requestsRef,
+            where("receiverId", "==", user.uid),
+        );
+        const unsubscribe = onSnapshot(
+            requestsQuery,
+            (snapshot) => {
+                const requests = snapshot.docs
+                    .map((requestDoc) => ({
+                        id: requestDoc.id,
+                        ...requestDoc.data(),
+                    }))
+                    .filter((request) => request.status === "pending");
+                setFriendRequests(requests);
+            },
+            (error) => {
+                console.error("Friend request listener error:", error);
+                setFriendRequests([]);
+                toast.error("Failed to load friend requests");
+            },
+        );
+        return () => unsubscribe();
+    }, [user]);
+
+    const handleSearch = (e) => {
         const value = e.target.value;
         setSearch(value);
         if (!value.trim()) {
             setSearchResults([]);
             return;
         }
-        try {
-            const results = allUsers.filter(
-                (item) =>
-                    item.id !== user.uid &&
-                    item.username?.toLowerCase().includes(value.toLowerCase()),
-            );
-            setSearchResults(results);
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to search users");
-        }
+        const results = allUsers.filter(
+            (item) =>
+                item.id !== user?.uid &&
+                item.username?.toLowerCase().includes(value.toLowerCase()),
+        );
+        setSearchResults(results);
     };
 
     const handleLogout = async () => {
+        if (loggingOut) return;
+        setLoggingOut(true);
         try {
             await signOut(auth);
             setShowMenu(false);
             toast.success("Logged out successfully!");
         } catch (error) {
+            console.error("Logout error:", error);
             toast.error(error.message || "Failed to logout");
+        } finally {
+            setLoggingOut(false);
         }
     };
 
-    const handleAddFriend = async (friendId) => {
-        if (!user) {
+    const handleSendRequest = async (friendId) => {
+        if (!user?.uid) {
+            toast.error("User not authenticated");
+            return;
+        }
+        if (loadingRequest === friendId) {
             return;
         }
         const currentFriends = userData?.friends || [];
@@ -78,17 +139,112 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
             toast.info("Already friends");
             return;
         }
+        setLoadingRequest(friendId);
+        try {
+            const requestId = `${user.uid}_${friendId}`;
+            const requestRef = doc(db, "friendRequests", requestId);
+            const existingRequest = await getDoc(requestRef);
+            if (
+                existingRequest.exists() &&
+                existingRequest.data().status === "pending"
+            ) {
+                toast.info("Friend request already sent");
+                return;
+            }
+            const reverseRequestId = `${friendId}_${user.uid}`;
+            const reverseRequestRef = doc(
+                db,
+                "friendRequests",
+                reverseRequestId,
+            );
+            const reverseRequest = await getDoc(reverseRequestRef);
+            if (
+                reverseRequest.exists() &&
+                reverseRequest.data().status === "pending"
+            ) {
+                const batch = writeBatch(db);
+                const currentUserRef = doc(db, "users", user.uid);
+                const otherUserRef = doc(db, "users", friendId);
+                batch.update(currentUserRef, {
+                    friends: arrayUnion(friendId),
+                });
+                batch.update(otherUserRef, {
+                    friends: arrayUnion(user.uid),
+                });
+                batch.update(reverseRequestRef, {
+                    status: "accepted",
+                });
+                await batch.commit();
+                toast.success("You are now friends!");
+                return;
+            }
+            await setDoc(requestRef, {
+                senderId: user.uid,
+                receiverId: friendId,
+                status: "pending",
+                createdAt: serverTimestamp(),
+            });
+            toast.success("Friend request sent!");
+        } catch (error) {
+            console.error("Failed to send friend request:", error);
+            toast.error("Failed to send friend request");
+        } finally {
+            setLoadingRequest(null);
+        }
+    };
+
+    const handleAcceptRequest = async (request) => {
+        if (!user?.uid) {
+            toast.error("User not authenticated");
+            return;
+        }
+        if (processingRequest === request.id) {
+            return;
+        }
+        setProcessingRequest(request.id);
         try {
             const batch = writeBatch(db);
             const currentUserRef = doc(db, "users", user.uid);
-            const friendUserRef = doc(db, "users", friendId);
-            batch.update(currentUserRef, { friends: arrayUnion(friendId) });
-            batch.update(friendUserRef, { friends: arrayUnion(user.uid) });
+            const senderRef = doc(db, "users", request.senderId);
+            const requestRef = doc(db, "friendRequests", request.id);
+            batch.update(currentUserRef, {
+                friends: arrayUnion(request.senderId),
+            });
+            batch.update(senderRef, {
+                friends: arrayUnion(user.uid),
+            });
+            batch.update(requestRef, {
+                status: "accepted",
+            });
             await batch.commit();
-            toast.success("Friend added successfully!");
+            toast.success("Friend request accepted!");
         } catch (error) {
-            console.error(error);
-            toast.error("Failed to add friend");
+            console.error("Failed to accept friend request:", error);
+            toast.error("Failed to accept friend request");
+        } finally {
+            setProcessingRequest(null);
+        }
+    };
+
+    const handleRejectRequest = async (request) => {
+        if (!user?.uid) {
+            toast.error("User not authenticated");
+            return;
+        }
+        if (processingRequest === request.id) {
+            return;
+        }
+        setProcessingRequest(request.id);
+        try {
+            await updateDoc(doc(db, "friendRequests", request.id), {
+                status: "rejected",
+            });
+            toast.success("Friend request rejected");
+        } catch (error) {
+            console.error("Failed to reject friend request:", error);
+            toast.error("Failed to reject friend request");
+        } finally {
+            setProcessingRequest(null);
         }
     };
 
@@ -118,7 +274,9 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
                                     Edit Profile
                                 </p>
                                 <hr />
-                                <p onClick={handleLogout}>Logout</p>
+                                <p onClick={handleLogout}>
+                                    {loggingOut ? "Logging out..." : "Logout"}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -152,10 +310,19 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => handleAddFriend(item.id)}
-                                        disabled={isFriend}
+                                        onClick={() =>
+                                            handleSendRequest(item.id)
+                                        }
+                                        disabled={
+                                            isFriend ||
+                                            loadingRequest === item.id
+                                        }
                                     >
-                                        {isFriend ? "Added" : "Add"}
+                                        {isFriend
+                                            ? "Friends"
+                                            : loadingRequest === item.id
+                                              ? "Sending..."
+                                              : "Add"}
                                     </button>
                                 </div>
                             );
@@ -164,10 +331,47 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
                 )}
             </div>
             <div className="ls-list">
+                {friendRequests.map((request) => {
+                    const sender = allUsers.find(
+                        (item) => item.id === request.senderId,
+                    );
+                    if (!sender) {
+                        return null;
+                    }
+                    const processing = processingRequest === request.id;
+                    return (
+                        <div className="friend-request" key={request.id}>
+                            <img
+                                src={sender.profileImage || assets.profile_img}
+                                alt="profile"
+                            />
+                            <div>
+                                <p>{sender.username}</p>
+                                <span>Friend request</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleAcceptRequest(request)}
+                                disabled={processing}
+                            >
+                                {processing ? "..." : "Accept"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleRejectRequest(request)}
+                                disabled={processing}
+                            >
+                                {processing ? "..." : "Reject"}
+                            </button>
+                        </div>
+                    );
+                })}
                 {friends.map((item) => (
                     <div
                         key={item.id}
-                        className={`friends ${selectedFriend?.id === item.id ? "selected" : ""}`}
+                        className={`friends ${
+                            selectedFriend?.id === item.id ? "selected" : ""
+                        }`}
                         onClick={() => setSelectedFriend(item)}
                     >
                         <img

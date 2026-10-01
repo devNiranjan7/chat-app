@@ -18,15 +18,34 @@ const App = () => {
             <Routes>
                 <Route
                     path="/"
-                    element={user ? <Navigate to="/chat" /> : <Login />}
+                    element={
+                        user ? <Navigate to="/chat" replace /> : <Login />
+                    }
                 />
                 <Route
                     path="/chat"
-                    element={user ? <Chat /> : <Navigate to="/" />}
+                    element={
+                        user ? <Chat /> : <Navigate to="/" replace />
+                    }
                 />
                 <Route
                     path="/profile"
-                    element={user ? <ProfileUpdate /> : <Navigate to="/" />}
+                    element={
+                        user ? (
+                            <ProfileUpdate />
+                        ) : (
+                            <Navigate to="/" replace />
+                        )
+                    }
+                />
+                <Route
+                    path="*"
+                    element={
+                        <Navigate
+                            to={user ? "/chat" : "/"}
+                            replace
+                        />
+                    }
                 />
             </Routes>
             <ToastContainer />

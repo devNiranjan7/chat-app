@@ -140,34 +140,44 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 20px;
+    padding: 10px 12px;
+}
+
+.search-user img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.search-user div {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-user div p {
+    margin: 0;
+    color: #000;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-user button {
+    flex-shrink: 0;
+    border: none;
+    background: #077eff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
 }
 
 .search-user:hover {
     background: #f1f1f1;
-}
-
-.search-user img {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-}
-
-.search-user div {
-    display: flex;
-    flex-direction: column;
-}
-
-.search-user button {
-    margin-left: auto;
-    border: none;
-    background: #077eff;
-    color: white;
-    padding: 6px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
 }
 
 .search-user button:disabled {
@@ -181,4 +191,57 @@
 
 .friends.selected span {
     color: white;
+}
+
+.friend-request {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background-color: #9f9f9f6f;
+}
+
+.friend-request > img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.friend-request > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-request > div p {
+    margin: 0;
+    font-size: 12px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friend-request > div span {
+    color: #9f9f9f;
+    font-size: 10px;
+}
+
+.friend-request button {
+    border: none;
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.friend-request button:first-of-type {
+    background: #077eff;
+    color: white;
+}
+
+.friend-request button:last-of-type {
+    background: #e5e5e5;
+    color: #333;
 }

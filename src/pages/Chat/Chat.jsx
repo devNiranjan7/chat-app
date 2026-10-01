@@ -18,15 +18,20 @@ const Chat = () => {
                 <LeftSidebar
                     selectedFriend={selectedFriend}
                     setSelectedFriend={(friend) => {
-                        setSelectedFriend(friend);setShowProfile(false);}}
+                        setSelectedFriend(friend);
+                        setShowProfile(false);
+                    }}
                 />
                 <ChatBox
                     selectedFriend={selectedFriend}
                     setSelectedFriend={setSelectedFriend}
                     setShowProfile={setShowProfile}
                 />
-                <RightSidebar selectedFriend={selectedFriend} showProfile={showProfile}
-    setShowProfile={setShowProfile} />
+                <RightSidebar
+                    selectedFriend={selectedFriend}
+                    showProfile={showProfile}
+                    setShowProfile={setShowProfile}
+                />
             </div>
         </div>
     );

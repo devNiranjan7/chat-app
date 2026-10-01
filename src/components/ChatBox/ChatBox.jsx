@@ -18,10 +18,11 @@ import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
 
-const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
-    const { user,userData } = useContext(AppContext);
+const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
+    const { user, userData } = useContext(AppContext);
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
+    const [sending, setSending] = useState(false);
     const chatMessagesRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -39,24 +40,36 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
         const chatId = getChatId(user.uid, selectedFriend.id);
         const chatRef = doc(db, "chats", chatId);
         const createChat = async () => {
-            await setDoc(
-                chatRef,
-                {
-                    participants: [user.uid, selectedFriend.id],
-                },
-                { merge: true },
-            );
+            try {
+                await setDoc(
+                    chatRef,
+                    {
+                        participants: [user.uid, selectedFriend.id],
+                    },
+                    { merge: true },
+                );
+            } catch (error) {
+                console.error("Chat initialization error:", error);
+            }
         };
         createChat();
         const messagesRef = collection(chatRef, "messages");
         const messagesQuery = query(messagesRef, orderBy("createdAt", "asc"));
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-            const messagesData = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setMessages(messagesData);
-        });
+        const unsubscribe = onSnapshot(
+            messagesQuery,
+            (snapshot) => {
+                const messagesData = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+
+                setMessages(messagesData);
+            },
+            (error) => {
+                console.error("Messages listener error:", error);
+                toast.error("Failed to load messages");
+            },
+        );
         return () => unsubscribe();
     }, [user, selectedFriend]);
 
@@ -69,10 +82,21 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
         if (!file) {
             return;
         }
-        if (!user.uid || !selectedFriend.id) {
+        if (!user?.uid || !selectedFriend?.id) {
             toast.error("Please select a friend");
+            e.target.value = "";
             return;
         }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Image must be smaller than 5 MB");
+            e.target.value = "";
+            return;
+        }
+        if (sending) {
+            e.target.value = "";
+            return;
+        }
+        setSending(true);
         try {
             const imageUrl = await uploadToCloudinary(file);
             const chatId = getChatId(user.uid, selectedFriend.id);
@@ -90,10 +114,12 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
             });
             toast.success("Image sent!");
         } catch (error) {
-            console.error(error);
+            console.error("Failed to send image:", error);
             toast.error("Failed to send image");
+        } finally {
+            setSending(false);
+            e.target.value = "";
         }
-        e.target.value = "";
     };
 
     const handleSendMessage = async () => {
@@ -108,6 +134,10 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
             toast.error("Please select a friend");
             return;
         }
+        if (sending) {
+            return;
+        }
+        setSending(true);
         try {
             const chatId = getChatId(user.uid, selectedFriend.id);
             const chatRef = doc(db, "chats", chatId);
@@ -124,15 +154,22 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
             });
             setMessage("");
         } catch (error) {
-            console.error(error);
+            console.error("Failed to send message:", error);
             toast.error("Failed to send message");
+        } finally {
+            setSending(false);
         }
     };
 
     return (
         <div className="chat-box">
             <div className="chat-user">
-                <button className="back-button" onClick={()=>setSelectedFriend(null)}>&lt;</button>
+                <button
+                    className="back-button"
+                    onClick={() => setSelectedFriend(null)}
+                >
+                    &lt;
+                </button>
                 <img
                     src={selectedFriend?.profileImage || assets.profile_img}
                     alt="profile"
@@ -147,7 +184,12 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                         />
                     )}
                 </p>
-                <img src={assets.help_icon} className="help" alt="help" onClick={() => setShowProfile(true)}/>
+                <img
+                    src={assets.help_icon}
+                    className="help"
+                    alt="help"
+                    onClick={() => setShowProfile(true)}
+                />
             </div>
             <div className="chat-msg" ref={chatMessagesRef}>
                 {!selectedFriend && (
@@ -177,7 +219,7 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                                 <img
                                     src={
                                         message.senderId === user.uid
-                                            ? userData.profileImage ||
+                                            ? userData?.profileImage ||
                                               assets.profile_img
                                             : selectedFriend.profileImage ||
                                               assets.profile_img
@@ -185,12 +227,14 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                                     alt="profile"
                                 />
                                 <p>
-                                    {message.createdAt
-                                        ?.toDate()
-                                        .toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
+                                    {message.createdAt?.toDate
+                                        ? message.createdAt
+                                              .toDate()
+                                              .toLocaleTimeString([], {
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                              })
+                                        : ""}
                                 </p>
                             </div>
                         </div>
@@ -209,14 +253,14 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                             handleSendMessage();
                         }
                     }}
-                    disabled={!selectedFriend}
+                    disabled={!selectedFriend || sending}
                 />
                 <input
                     type="file"
                     id="image"
                     accept="image/png,image/jpeg"
                     hidden
-                    disabled={!selectedFriend}
+                    disabled={!selectedFriend || sending}
                     onChange={handleImageChange}
                 />
                 <label htmlFor="image">

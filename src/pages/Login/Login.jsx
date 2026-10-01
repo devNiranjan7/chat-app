@@ -16,9 +16,13 @@ const Login = () => {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [resetLoading, setResetLoading] = useState(false);
 
     const onSubmitHandler = async (e) => {
         e.preventDefault();
+        if (loading) return;
+        setLoading(true);
         try {
             if (currState === "Sign up") {
                 const userCredential = await createUserWithEmailAndPassword(
@@ -42,6 +46,7 @@ const Login = () => {
                 toast.success("Login successful");
             }
         } catch (error) {
+            console.error(error);
             switch (error.code) {
                 case "auth/email-already-in-use":
                     toast.error("Email is already registered");
@@ -70,6 +75,8 @@ const Login = () => {
                 default:
                     toast.error("Something went wrong. Please try again");
             }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -78,6 +85,8 @@ const Login = () => {
             toast.error("Enter your email first");
             return;
         }
+        if (resetLoading) return;
+        setResetLoading(true);
         try {
             await sendPasswordResetEmail(auth, email.trim());
             toast.success("Password reset email sent!");
@@ -90,6 +99,8 @@ const Login = () => {
             } else {
                 toast.error("Failed to send password reset email");
             }
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -127,13 +138,19 @@ const Login = () => {
                 {currState === "Login" && (
                     <p
                         className="forgot-password"
-                        onClick={handleForgotPassword}
+                        onClick={
+                            resetLoading ? undefined : handleForgotPassword
+                        }
                     >
-                        Forgot Password?
+                        {resetLoading ? "Sending..." : "Forgot Password?"}
                     </p>
                 )}
-                <button type="submit">
-                    {currState === "Sign up" ? "Create Account" : "Login now"}
+                <button type="submit" disabled={loading}>
+                    {loading
+                        ? "Please wait..."
+                        : currState === "Sign up"
+                          ? "Create Account"
+                          : "Login now"}
                 </button>
                 <div className="login-term">
                     <input type="checkbox" required />

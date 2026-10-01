@@ -11,32 +11,48 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 const RightSidebar = ({ selectedFriend, showProfile, setShowProfile }) => {
     const { user } = useContext(AppContext);
     const [media, setMedia] = useState([]);
-
+    const [loggingOut, setLoggingOut] = useState(false);
+    
     useEffect(() => {
-        if (!user || !selectedFriend) {
+        if (!user?.uid || !selectedFriend?.id) {
             setMedia([]);
             return;
         }
         const chatId = getChatId(user.uid, selectedFriend.id);
         const messagesRef = collection(db, "chats", chatId, "messages");
         const messagesQuery = query(messagesRef, orderBy("createdAt", "desc"));
-        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-            const images = snapshot.docs
-                .map((doc) => doc.data())
-                .filter((message) => message.image)
-                .map((message) => message.image);
-            setMedia(images);
-        });
+        const unsubscribe = onSnapshot(
+            messagesQuery,
+            (snapshot) => {
+                const images = snapshot.docs
+                    .map((doc) => doc.data())
+                    .filter((message) => message.image)
+                    .map((message) => message.image);
+
+                setMedia(images);
+            },
+            (error) => {
+                console.error("Media listener error:", error);
+                setMedia([]);
+                toast.error("Failed to load shared media");
+            },
+        );
         return () => unsubscribe();
     }, [user, selectedFriend]);
 
     const handleLogout = async () => {
+        if (loggingOut) {
+            return;
+        }
+        setLoggingOut(true);
         try {
             await signOut(auth);
             toast.success("Logged out successfully!");
         } catch (error) {
-            console.error(error);
+            console.error("Logout error:", error);
             toast.error(error.message || "Failed to logout");
+        } finally {
+            setLoggingOut(false);
         }
     };
 
@@ -103,7 +119,9 @@ const RightSidebar = ({ selectedFriend, showProfile, setShowProfile }) => {
                     </div>
                 </>
             )}
-            <button onClick={handleLogout}>Logout</button>
+            <button onClick={handleLogout} disabled={loggingOut}>
+                {loggingOut ? "Logging out..." : "Logout"}
+            </button>
         </div>
     );
 };

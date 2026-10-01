@@ -15,16 +15,17 @@ const ProfileUpdate = () => {
     const [name, setName] = useState("");
     const [bio, setBio] = useState("");
     const [previewUrl, setPreviewUrl] = useState("");
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-    if (!image) {
-        setPreviewUrl("");
-        return;
-    }
-    const url = URL.createObjectURL(image);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-}, [image]);
+        if (!image) {
+            setPreviewUrl("");
+            return;
+        }
+        const url = URL.createObjectURL(image);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [image]);
 
     useEffect(() => {
         if (userData) {
@@ -39,24 +40,28 @@ const ProfileUpdate = () => {
             toast.error("User not found");
             return;
         }
+        if (loading) return;
+        setLoading(true);
         try {
             let imageUrl = userData.profileImage || "";
             if (image) {
                 imageUrl = await uploadToCloudinary(image);
             }
             await updateDoc(doc(db, "users", user.uid), {
-                username: name,
-                bio: bio,
+                username: name.trim(),
+                bio: bio.trim(),
                 profileImage: imageUrl,
             });
             toast.success("Profile updated successfully");
+            setImage(null);
             setTimeout(() => {
                 navigate("/chat");
             }, 500);
-            setImage(null);
         } catch (error) {
-            console.error(error);
+            console.error("Profile update error:", error);
             toast.error(error.message || "Failed to update profile");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -67,7 +72,18 @@ const ProfileUpdate = () => {
                     <h3>Profile Details</h3>
                     <label htmlFor="avatar">
                         <input
-                            onChange={(e) => setImage(e.target.files[0])}
+                            onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                if (file.size > 5 * 1024 * 1024) {
+                                    toast.error(
+                                        "Image must be smaller than 5 MB",
+                                    );
+                                    e.target.value = "";
+                                    return;
+                                }
+                                setImage(file);
+                            }}
                             type="file"
                             id="avatar"
                             accept=".png,.jpg,.jpeg"
@@ -75,7 +91,9 @@ const ProfileUpdate = () => {
                         />
                         <img
                             src={
-                                previewUrl || userData?.profileImage || assets.avatar_icon
+                                previewUrl ||
+                                userData?.profileImage ||
+                                assets.avatar_icon
                             }
                             alt="avatar"
                         />
@@ -93,7 +111,9 @@ const ProfileUpdate = () => {
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                     ></textarea>
-                    <button type="submit">Save</button>
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Saving..." : "Save"}
+                    </button>
                 </form>
                 <img
                     className="logo"
