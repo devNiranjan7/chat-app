@@ -14,3 +14,13 @@
 img.dot {
     width: 15px !important;
 }
+
+.loading {
+    height: 100vh;
+    background: linear-gradient(#596aff, #383699);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    color: white;
+}

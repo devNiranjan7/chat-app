@@ -65,10 +65,10 @@
 
 .chat-msg {
     height: calc(100% - 70px);
-    padding-bottom: 50px;
-    overflow-y: scroll;
+    padding: 10px 0px 50px;
+    overflow-y: auto;
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
 }
 
 .s-msg div img,
@@ -121,4 +121,13 @@
 
 .help {
     cursor: pointer;
+}
+
+.send-button {
+    cursor: pointer;
+}
+
+.send-button.disabled {
+    opacity: 0.5;
+    cursor: default;
 }

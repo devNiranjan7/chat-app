@@ -64,3 +64,15 @@
     cursor: pointer;
     color: #077eff;
 }
+
+.forgot-password {
+    color: #077eff;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: right;
+    margin: -5px 0 10px;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}

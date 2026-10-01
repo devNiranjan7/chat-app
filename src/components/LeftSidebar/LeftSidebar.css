@@ -5,7 +5,9 @@
 }
 
 .ls-top {
-    padding: 20px;
+    padding: 20px 20px 5px;
+    position: relative;
+    z-index: 2;
 }
 
 .ls-nav {
@@ -18,7 +20,7 @@
     max-width: 140px;
 }
 
-.menu img {
+.menu > img {
     max-height: 20px;
     opacity: 0.6;
     cursor: pointer;
@@ -31,6 +33,7 @@
     gap: 10px;
     padding: 10px 12px;
     margin-top: 20px;
+    border-radius: 8px;
 }
 
 .ls-search img {
@@ -54,7 +57,7 @@
     display: flex;
     flex-direction: column;
     height: calc(100% - 150px);
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 .friends {
@@ -95,7 +98,7 @@
     padding: 10px 0px;
 }
 
-.menu .sub-menu {
+.sub-menu {
     position: absolute;
     top: 100%;
     right: 0;
@@ -104,7 +107,8 @@
     border-radius: 5px;
     background-color: white;
     color: black;
-    display: none;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sub-menu hr {
@@ -119,6 +123,62 @@
     font-size: 14px;
 }
 
-.menu:hover .sub-menu {
-    display: block;
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 20px;
+    right: 20px;
+    background: white;
+    color: black;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 20;
+    border-radius: 4px;
+}
+
+.search-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.search-user:hover {
+    background: #f1f1f1;
+}
+
+.search-user img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+}
+
+.search-user div {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-user button {
+    margin-left: auto;
+    border: none;
+    background: #077eff;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.search-user button:disabled {
+    background: #999;
+    cursor: default;
+}
+
+.friends.selected {
+    background-color: #077eff;
+}
+
+.friends.selected span {
+    color: white;
 }
