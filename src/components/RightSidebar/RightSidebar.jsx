@@ -6,38 +6,72 @@ import { AppContext } from "../../context/AppContext.jsx";
 import { auth, db } from "../../config/firebase.js";
 import "./RightSidebar.css";
 import getChatId from "../../lib/getChatId.js";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+    collection,
+    doc,
+    onSnapshot,
+    orderBy,
+    query,
+} from "firebase/firestore";
 
 const RightSidebar = ({ selectedFriend, showProfile, setShowProfile }) => {
     const { user } = useContext(AppContext);
     const [media, setMedia] = useState([]);
     const [loggingOut, setLoggingOut] = useState(false);
-    
+
     useEffect(() => {
-        if (!user?.uid || !selectedFriend?.id) {
+        if (!user || !selectedFriend) {
             setMedia([]);
             return;
         }
         const chatId = getChatId(user.uid, selectedFriend.id);
-        const messagesRef = collection(db, "chats", chatId, "messages");
-        const messagesQuery = query(messagesRef, orderBy("createdAt", "desc"));
-        const unsubscribe = onSnapshot(
-            messagesQuery,
-            (snapshot) => {
-                const images = snapshot.docs
-                    .map((doc) => doc.data())
-                    .filter((message) => message.image)
-                    .map((message) => message.image);
+        const chatRef = doc(db, "chats", chatId);
+        let unsubscribeChat = null;
+        let unsubscribeMessages = null;
+        unsubscribeChat = onSnapshot(
+            chatRef,
+            (chatSnapshot) => {
+                if (!chatSnapshot.exists()) {
+                    setMedia([]);
+                    return;
+                }
+                const messagesRef = collection(db, "chats", chatId, "messages");
+                const messagesQuery = query(
+                    messagesRef,
+                    orderBy("createdAt", "desc"),
+                );
+                if (unsubscribeMessages) {
+                    unsubscribeMessages();
+                }
+                unsubscribeMessages = onSnapshot(
+                    messagesQuery,
+                    (snapshot) => {
+                        const images = snapshot.docs
+                            .map((doc) => doc.data())
+                            .filter((message) => message.image)
+                            .map((message) => message.image);
 
-                setMedia(images);
+                        setMedia(images);
+                    },
+                    (error) => {
+                        console.error("Media messages listener error:", error);
+                        toast.error("Failed to load media");
+                    },
+                );
             },
             (error) => {
-                console.error("Media listener error:", error);
-                setMedia([]);
-                toast.error("Failed to load shared media");
+                console.error("Chat listener error:", error);
+                toast.error("Failed to initialize media data");
             },
         );
-        return () => unsubscribe();
+        return () => {
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+            }
+            if (unsubscribeChat) {
+                unsubscribeChat();
+            }
+        };
     }, [user, selectedFriend]);
 
     const handleLogout = async () => {

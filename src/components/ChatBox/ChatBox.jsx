@@ -32,15 +32,22 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
         }
     };
 
+    // Load messages in real time
     useEffect(() => {
         if (!user || !selectedFriend) {
             setMessages([]);
             return;
         }
+
         const chatId = getChatId(user.uid, selectedFriend.id);
         const chatRef = doc(db, "chats", chatId);
-        const createChat = async () => {
+
+        let unsubscribeMessages = null;
+        let cancelled = false;
+
+        const initializeChat = async () => {
             try {
+                // Create chat first
                 await setDoc(
                     chatRef,
                     {
@@ -48,29 +55,50 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
                     },
                     { merge: true },
                 );
+
+                if (cancelled) {
+                    return;
+                }
+
+                // Only start the messages listener after
+                // the chat document exists.
+                const messagesRef = collection(chatRef, "messages");
+
+                const messagesQuery = query(
+                    messagesRef,
+                    orderBy("createdAt", "asc"),
+                );
+
+                unsubscribeMessages = onSnapshot(
+                    messagesQuery,
+                    (snapshot) => {
+                        const messagesData = snapshot.docs.map((doc) => ({
+                            id: doc.id,
+                            ...doc.data(),
+                        }));
+
+                        setMessages(messagesData);
+                    },
+                    (error) => {
+                        console.error("Messages listener error:", error);
+                        toast.error("Failed to load messages");
+                    },
+                );
             } catch (error) {
                 console.error("Chat initialization error:", error);
+                toast.error("Failed to initialize chat");
             }
         };
-        createChat();
-        const messagesRef = collection(chatRef, "messages");
-        const messagesQuery = query(messagesRef, orderBy("createdAt", "asc"));
-        const unsubscribe = onSnapshot(
-            messagesQuery,
-            (snapshot) => {
-                const messagesData = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
 
-                setMessages(messagesData);
-            },
-            (error) => {
-                console.error("Messages listener error:", error);
-                toast.error("Failed to load messages");
-            },
-        );
-        return () => unsubscribe();
+        initializeChat();
+
+        return () => {
+            cancelled = true;
+
+            if (unsubscribeMessages) {
+                unsubscribeMessages();
+            }
+        };
     }, [user, selectedFriend]);
 
     useEffect(() => {
