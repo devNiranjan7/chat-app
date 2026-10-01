@@ -50,10 +50,7 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
             const results = allUsers.filter(
                 (item) =>
                     item.id !== user.uid &&
-                    (item.username
-                        ?.toLowerCase()
-                        .includes(value.toLowerCase()) ||
-                        item.email?.toLowerCase().includes(value.toLowerCase)),
+                    item.username?.toLowerCase().includes(value.toLowerCase()),
             );
             setSearchResults(results);
         } catch (error) {

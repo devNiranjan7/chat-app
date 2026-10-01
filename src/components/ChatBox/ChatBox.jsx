@@ -43,8 +43,6 @@ const ChatBox = ({ selectedFriend, setSelectedFriend,setShowProfile }) => {
                 chatRef,
                 {
                     participants: [user.uid, selectedFriend.id],
-                    lastMessage: "",
-                    lastMessageTime: serverTimestamp(),
                 },
                 { merge: true },
             );
