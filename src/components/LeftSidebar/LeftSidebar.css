@@ -245,3 +245,17 @@
     background: #e5e5e5;
     color: #333;
 }
+
+.unread-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: #077eff;
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

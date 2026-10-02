@@ -7,6 +7,7 @@ import {
     addDoc,
     collection,
     doc,
+    increment,
     onSnapshot,
     orderBy,
     query,
@@ -27,6 +28,7 @@ const ChatBox = ({
     setShowProfile,
     messages,
     setMessages,
+    chat,
 }) => {
     const { user, userData } = useContext(AppContext);
     const [message, setMessage] = useState("");
@@ -48,6 +50,72 @@ const ChatBox = ({
         !msg.image &&
         !!msg.createdAt?.toMillis &&
         now - msg.createdAt.toMillis() < EDIT_WINDOW_MS;
+
+    const friendReadAt = chat?.lastReadAt?.[friendId]?.toMillis?.() ?? 0;
+    const friendDeliveredAt = Math.max(
+        chat?.deliveredAt?.[friendId]?.toMillis?.() ?? 0,
+        friendReadAt,
+    );
+    const getStatus = (msg) => {
+        const t = msg.createdAt?.toMillis?.();
+        if (!t) {
+            return "sending";
+        }
+        if (friendReadAt >= t) {
+            return "seen";
+        }
+        if (friendDeliveredAt >= t) {
+            return "delivered";
+        }
+        return "sent";
+    };
+
+    const [tabVisible, setTabVisible] = useState(
+        document.visibilityState === "visible",
+    );
+    const markedRef = useRef("");
+
+    useEffect(() => {
+        const onChange = () =>
+            setTabVisible(document.visibilityState === "visible");
+        document.addEventListener("visibilitychange", onChange);
+        return () => document.removeEventListener("visibilitychange", onChange);
+    }, []);
+
+    useEffect(() => {
+        markedRef.current = "";
+    }, [friendId]);
+
+    useEffect(() => {
+        if (!uid || !friendId || !tabVisible) {
+            return;
+        }
+        const lastFriendMsg = [...messages]
+            .reverse()
+            .find((m) => m.senderId === friendId);
+        if (!lastFriendMsg?.createdAt?.toMillis) {
+            return;
+        }
+        const unreadCount = chat?.unread?.[uid] ?? 0;
+        const lastRead = chat?.lastReadAt?.[uid]?.toMillis?.() ?? 0;
+        if (
+            unreadCount === 0 &&
+            lastRead >= lastFriendMsg.createdAt.toMillis()
+        ) {
+            return;
+        }
+        const key = `${friendId}:${lastFriendMsg.id}`;
+        if (markedRef.current === key) {
+            return;
+        }
+        markedRef.current = key;
+        updateDoc(doc(db, "chats", getChatId(uid, friendId)), {
+            [`unread.${uid}`]: 0,
+            [`lastReadAt.${uid}`]: serverTimestamp(),
+        }).catch((error) => {
+            console.error("Failed to mark as read:", error);
+        });
+    }, [messages, chat, uid, friendId, tabVisible]);
 
     const scrollToBottom = () => {
         if (chatMessagesRef.current) {
@@ -161,6 +229,7 @@ const ChatBox = ({
             await updateDoc(chatRef, {
                 lastMessage: "📷 Image",
                 lastMessageTime: serverTimestamp(),
+                [`unread.${selectedFriend.id}`]: increment(1),
             });
             toast.success("Image sent!");
         } catch (error) {
@@ -243,6 +312,7 @@ const ChatBox = ({
             await updateDoc(chatRef, {
                 lastMessage: message.trim(),
                 lastMessageTime: serverTimestamp(),
+                [`unread.${selectedFriend.id}`]: increment(1),
             });
             setMessage("");
         } catch (error) {
@@ -252,7 +322,6 @@ const ChatBox = ({
             setSending(false);
         }
     };
-
     const handleDeleteMessage = async (msg) => {
         if (!user?.uid || !selectedFriend?.id || sending) {
             return;
@@ -366,6 +435,19 @@ const ChatBox = ({
                                                       minute: "2-digit",
                                                   })
                                             : ""}
+                                        {isOwn && !msg.deleted && (
+                                            <span
+                                                className={`msg-status ${getStatus(msg)}`}
+                                                title={getStatus(msg)}
+                                            >
+                                                {" "}
+                                                {getStatus(msg) === "sending"
+                                                    ? "…"
+                                                    : getStatus(msg) === "sent"
+                                                      ? "✓"
+                                                      : "✓✓"}
+                                            </span>
+                                        )}
                                         {msg.edited && !msg.deleted && (
                                             <span className="edited-label">
                                                 {" "}

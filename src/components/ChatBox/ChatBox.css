@@ -203,3 +203,13 @@
     font-style: italic;
     opacity: 0.7;
 }
+
+.msg-status {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.msg-status.seen {
+    color: #077eff;
+    opacity: 1;
+}

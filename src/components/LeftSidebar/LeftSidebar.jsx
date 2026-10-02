@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import { auth, db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import { AppContext } from "../../context/AppContext.jsx";
+import getChatId from "../../lib/getChatId.js";
 import {
     arrayUnion,
     collection,
@@ -19,7 +20,7 @@ import {
     where,
     writeBatch,
 } from "firebase/firestore";
-const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
+const LeftSidebar = ({ selectedFriend, setSelectedFriend, chats = {} }) => {
     const { user, userData } = useContext(AppContext);
     const [search, setSearch] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -366,24 +367,35 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend }) => {
                         </div>
                     );
                 })}
-                {friends.map((item) => (
-                    <div
-                        key={item.id}
-                        className={`friends ${
-                            selectedFriend?.id === item.id ? "selected" : ""
-                        }`}
-                        onClick={() => setSelectedFriend(item)}
-                    >
-                        <img
-                            src={item.profileImage || assets.profile_img}
-                            alt="profile"
-                        />
-                        <div>
-                            <p>{item.username}</p>
-                            <span>{item.bio || "Hey There!"}</span>
+                {friends.map((item) => {
+                    const unread =
+                        chats[getChatId(user.uid, item.id)]?.unread?.[
+                            user.uid
+                        ] ?? 0;
+                    return (
+                        <div
+                            key={item.id}
+                            className={`friends ${
+                                selectedFriend?.id === item.id ? "selected" : ""
+                            }`}
+                            onClick={() => setSelectedFriend(item)}
+                        >
+                            <img
+                                src={item.profileImage || assets.profile_img}
+                                alt="profile"
+                            />
+                            <div>
+                                <p>{item.username}</p>
+                                <span>{item.bio || "Hey There!"}</span>
+                            </div>
+                            {unread > 0 && selectedFriend?.id !== item.id && (
+                                <span className="unread-badge">
+                                    {unread > 9 ? "9+" : unread}
+                                </span>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
