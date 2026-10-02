@@ -44,6 +44,7 @@ const ChatBox = ({
 
     const canEdit = (msg) =>
         msg.senderId === uid &&
+        !msg.deleted &&
         !msg.image &&
         !!msg.createdAt?.toMillis &&
         now - msg.createdAt.toMillis() < EDIT_WINDOW_MS;
@@ -193,6 +194,7 @@ const ChatBox = ({
             const newText = message.trim();
             if (
                 !original ||
+                original.deleted ||
                 original.senderId !== user.uid ||
                 original.image ||
                 newText === original.text
@@ -230,7 +232,6 @@ const ChatBox = ({
             }
             return;
         }
-
         setSending(true);
         try {
             await addDoc(collection(chatRef, "messages"), {
@@ -247,6 +248,43 @@ const ChatBox = ({
         } catch (error) {
             console.error("Failed to send message:", error);
             toast.error("Failed to send message");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleDeleteMessage = async (msg) => {
+        if (!user?.uid || !selectedFriend?.id || sending) {
+            return;
+        }
+        if (msg.senderId !== user.uid || msg.deleted) {
+            return;
+        }
+        if (!window.confirm("Delete this message for everyone?")) {
+            return;
+        }
+        if (editingId === msg.id) {
+            cancelEdit();
+        }
+        setSending(true);
+        try {
+            const chatId = getChatId(user.uid, selectedFriend.id);
+            const chatRef = doc(db, "chats", chatId);
+            const batch = writeBatch(db);
+            batch.update(doc(chatRef, "messages", msg.id), {
+                text: "",
+                image: "",
+                deleted: true,
+                deletedAt: serverTimestamp(),
+            });
+            if (messages[messages.length - 1]?.id === msg.id) {
+                batch.update(chatRef, { lastMessage: "Message deleted" });
+            }
+            await batch.commit();
+            toast.success("Message deleted");
+        } catch (error) {
+            console.error("Failed to delete message:", error);
+            toast.error("Failed to delete message");
         } finally {
             setSending(false);
         }
@@ -294,7 +332,11 @@ const ChatBox = ({
                                 key={msg.id}
                                 className={isOwn ? "s-msg" : "r-msg"}
                             >
-                                {msg.image ? (
+                                {msg.deleted ? (
+                                    <p className="msg deleted-msg">
+                                        This message was deleted
+                                    </p>
+                                ) : msg.image ? (
                                     <img
                                         src={msg.image}
                                         alt="sent"
@@ -324,7 +366,7 @@ const ChatBox = ({
                                                       minute: "2-digit",
                                                   })
                                             : ""}
-                                        {msg.edited && (
+                                        {msg.edited && !msg.deleted && (
                                             <span className="edited-label">
                                                 {" "}
                                                 · edited
@@ -337,6 +379,17 @@ const ChatBox = ({
                                             >
                                                 {" "}
                                                 Edit
+                                            </span>
+                                        )}
+                                        {isOwn && !msg.deleted && (
+                                            <span
+                                                className="msg-delete"
+                                                onClick={() =>
+                                                    handleDeleteMessage(msg)
+                                                }
+                                            >
+                                                {" "}
+                                                Delete
                                             </span>
                                         )}
                                     </p>

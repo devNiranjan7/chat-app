@@ -193,3 +193,13 @@
 .chat-input input.editing {
     outline: 2px solid #077eff;
 }
+
+.msg-delete {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.deleted-msg {
+    font-style: italic;
+    opacity: 0.7;
+}
