@@ -35,19 +35,22 @@ const RightSidebar = ({ selectedFriend, showProfile, setShowProfile }) => {
                     setMedia([]);
                     return;
                 }
-                const messagesRef = collection(db, "chats", chatId, "messages");
+                if (unsubscribeChat) {
+                    unsubscribeChat();
+                    unsubscribeChat = null;
+                }
+                if (unsubscribeMessages) {
+                    return;
+                }
                 const messagesQuery = query(
-                    messagesRef,
+                    collection(db, "chats", chatId, "messages"),
                     orderBy("createdAt", "desc"),
                 );
-                if (unsubscribeMessages) {
-                    unsubscribeMessages();
-                }
                 unsubscribeMessages = onSnapshot(
                     messagesQuery,
                     (snapshot) => {
                         const images = snapshot.docs
-                            .map((doc) => doc.data())
+                            .map((messageDoc) => messageDoc.data())
                             .filter((message) => message.image)
                             .map((message) => message.image);
 
