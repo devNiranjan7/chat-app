@@ -32,7 +32,6 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
         }
     };
 
-    // Load messages in real time
     useEffect(() => {
         if (!user || !selectedFriend) {
             setMessages([]);
@@ -47,28 +46,21 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
 
         const initializeChat = async () => {
             try {
-                // Create chat first
                 await setDoc(
                     chatRef,
                     {
-                        participants: [user.uid, selectedFriend.id],
+                        participants: [user.uid, selectedFriend.id].sort(),
                     },
                     { merge: true },
                 );
-
                 if (cancelled) {
                     return;
                 }
-
-                // Only start the messages listener after
-                // the chat document exists.
                 const messagesRef = collection(chatRef, "messages");
-
                 const messagesQuery = query(
                     messagesRef,
                     orderBy("createdAt", "asc"),
                 );
-
                 unsubscribeMessages = onSnapshot(
                     messagesQuery,
                     (snapshot) => {
@@ -89,9 +81,7 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
                 toast.error("Failed to initialize chat");
             }
         };
-
         initializeChat();
-
         return () => {
             cancelled = true;
 

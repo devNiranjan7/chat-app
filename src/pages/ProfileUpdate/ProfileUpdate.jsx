@@ -104,12 +104,12 @@ const ProfileUpdate = () => {
                         placeholder="Your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        required
+                        required maxLength={30}
                     />
                     <textarea
                         placeholder="Write profile bio"
                         value={bio}
-                        onChange={(e) => setBio(e.target.value)}
+                        onChange={(e) => setBio(e.target.value)} maxLength={300}
                     ></textarea>
                     <button type="submit" disabled={loading}>
                         {loading ? "Saving..." : "Save"}

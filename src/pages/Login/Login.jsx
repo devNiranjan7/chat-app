@@ -35,7 +35,6 @@ const Login = () => {
                 });
                 await setDoc(doc(db, "users", userCredential.user.uid), {
                     username: username,
-                    email: email,
                     profileImage: "",
                     bio: "",
                     friends: [],
