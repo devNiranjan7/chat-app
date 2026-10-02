@@ -31,10 +31,10 @@ const Login = () => {
                     password,
                 );
                 await updateProfile(userCredential.user, {
-                    displayName: username,
+                    displayName: username.trim(),
                 });
                 await setDoc(doc(db, "users", userCredential.user.uid), {
-                    username: username,
+                    username: username.trim(),
                     profileImage: "",
                     bio: "",
                     friends: [],
@@ -115,7 +115,7 @@ const Login = () => {
                         className="form-input"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        required
+                        required maxLength={30}
                     />
                 )}
                 <input

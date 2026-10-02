@@ -13,10 +13,13 @@ import {
     serverTimestamp,
     setDoc,
     updateDoc,
+    writeBatch,
 } from "firebase/firestore";
 import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
+
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 const ChatBox = ({
     selectedFriend,
@@ -30,13 +33,36 @@ const ChatBox = ({
     const uid = user?.uid;
     const friendId = selectedFriend?.id;
     const [sending, setSending] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [now, setNow] = useState(Date.now());
     const chatMessagesRef = useRef(null);
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 30000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const canEdit = (msg) =>
+        msg.senderId === uid &&
+        !msg.image &&
+        !!msg.createdAt?.toMillis &&
+        now - msg.createdAt.toMillis() < EDIT_WINDOW_MS;
 
     const scrollToBottom = () => {
         if (chatMessagesRef.current) {
             chatMessagesRef.current.scrollTop =
                 chatMessagesRef.current.scrollHeight;
         }
+    };
+
+    const startEdit = (msg) => {
+        setEditingId(msg.id);
+        setMessage(msg.text);
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setMessage("");
     };
 
     useEffect(() => {
@@ -90,6 +116,11 @@ const ChatBox = ({
             }
         };
     }, [uid, friendId, setMessages]);
+
+    useEffect(() => {
+        setEditingId(null);
+        setMessage("");
+    }, [friendId]);
 
     useEffect(() => {
         scrollToBottom();
@@ -155,12 +186,54 @@ const ChatBox = ({
         if (sending) {
             return;
         }
+        const chatId = getChatId(user.uid, selectedFriend.id);
+        const chatRef = doc(db, "chats", chatId);
+        if (editingId) {
+            const original = messages.find((m) => m.id === editingId);
+            const newText = message.trim();
+            if (
+                !original ||
+                original.senderId !== user.uid ||
+                original.image ||
+                newText === original.text
+            ) {
+                cancelEdit();
+                return;
+            }
+            if (!canEdit(original)) {
+                toast.error("Messages can only be edited for 15 minutes");
+                cancelEdit();
+                return;
+            }
+            setSending(true);
+            try {
+                const batch = writeBatch(db);
+                batch.update(doc(chatRef, "messages", editingId), {
+                    text: newText,
+                    edited: true,
+                    editedAt: serverTimestamp(),
+                });
+                if (messages[messages.length - 1]?.id === editingId) {
+                    batch.update(chatRef, { lastMessage: newText });
+                }
+                await batch.commit();
+                cancelEdit();
+            } catch (error) {
+                console.error("Failed to edit message:", error);
+                toast.error(
+                    error.code === "permission-denied"
+                        ? "Messages can only be edited for 15 minutes"
+                        : "Failed to edit message",
+                );
+            } finally {
+                setSending(false);
+            }
+            return;
+        }
+
         setSending(true);
         try {
-            const chatId = getChatId(user.uid, selectedFriend.id);
-            const chatRef = doc(db, "chats", chatId);
-            const messagesRef = collection(chatRef, "messages");
-            await addDoc(messagesRef, {
+            await addDoc(collection(chatRef, "messages"), {
                 senderId: user.uid,
                 text: message.trim(),
                 image: "",
@@ -214,53 +287,76 @@ const ChatBox = ({
                     <p className="no-chat">Select a friend to start chatting</p>
                 )}
                 {selectedFriend &&
-                    messages.map((message) => (
-                        <div
-                            key={message.id}
-                            className={
-                                message.senderId === user.uid
-                                    ? "s-msg"
-                                    : "r-msg"
-                            }
-                        >
-                            {message.image ? (
-                                <img
-                                    src={message.image}
-                                    alt="sent"
-                                    className="msg-img"
-                                    onLoad={scrollToBottom}
-                                />
-                            ) : (
-                                <p className="msg">{message.text}</p>
-                            )}
-                            <div>
-                                <img
-                                    src={
-                                        message.senderId === user.uid
-                                            ? userData?.profileImage ||
-                                              assets.profile_img
-                                            : selectedFriend.profileImage ||
-                                              assets.profile_img
-                                    }
-                                    alt="profile"
-                                />
-                                <p>
-                                    {message.createdAt?.toDate
-                                        ? message.createdAt
-                                              .toDate()
-                                              .toLocaleTimeString([], {
-                                                  hour: "2-digit",
-                                                  minute: "2-digit",
-                                              })
-                                        : ""}
-                                </p>
+                    messages.map((msg) => {
+                        const isOwn = msg.senderId === user.uid;
+                        return (
+                            <div
+                                key={msg.id}
+                                className={isOwn ? "s-msg" : "r-msg"}
+                            >
+                                {msg.image ? (
+                                    <img
+                                        src={msg.image}
+                                        alt="sent"
+                                        className="msg-img"
+                                        onLoad={scrollToBottom}
+                                    />
+                                ) : (
+                                    <p className="msg">{msg.text}</p>
+                                )}
+                                <div>
+                                    <img
+                                        src={
+                                            isOwn
+                                                ? userData?.profileImage ||
+                                                  assets.profile_img
+                                                : selectedFriend.profileImage ||
+                                                  assets.profile_img
+                                        }
+                                        alt="profile"
+                                    />
+                                    <p>
+                                        {msg.createdAt?.toDate
+                                            ? msg.createdAt
+                                                  .toDate()
+                                                  .toLocaleTimeString([], {
+                                                      hour: "2-digit",
+                                                      minute: "2-digit",
+                                                  })
+                                            : ""}
+                                        {msg.edited && (
+                                            <span className="edited-label">
+                                                {" "}
+                                                · edited
+                                            </span>
+                                        )}
+                                        {canEdit(msg) && (
+                                            <span
+                                                className="msg-edit"
+                                                onClick={() => startEdit(msg)}
+                                            >
+                                                {" "}
+                                                Edit
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
             </div>
             <div className="chat-input">
+                {editingId && (
+                    <div className="editing-bar">
+                        <span>Editing message</span>
+                        <button type="button" onClick={cancelEdit}>
+                            Cancel
+                        </button>
+                    </div>
+                )}
                 <input
                     type="text"
+                    className={editingId ? "editing" : ""}
                     placeholder={
                         selectedFriend ? "Send a message" : "Select a friend"
                     }
@@ -269,6 +365,8 @@ const ChatBox = ({
                     onKeyDown={(e) => {
                         if (e.key === "Enter") {
                             handleSendMessage();
+                        } else if (e.key === "Escape" && editingId) {
+                            cancelEdit();
                         }
                     }}
                     disabled={!selectedFriend || sending}
@@ -278,7 +376,7 @@ const ChatBox = ({
                     id="image"
                     accept="image/png,image/jpeg"
                     hidden
-                    disabled={!selectedFriend || sending}
+                    disabled={!selectedFriend || sending || !!editingId}
                     onChange={handleImageChange}
                 />
                 <label htmlFor="image">

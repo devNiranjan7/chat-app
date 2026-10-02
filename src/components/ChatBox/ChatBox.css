@@ -168,3 +168,28 @@
 .chat-msg {
     min-width: 0;
 }
+
+.chat-input .editing-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 15px;
+    font-size: 12px;
+    background: #eef3ff;
+}
+
+.chat-input .editing-bar button {
+    border: none;
+    background: none;
+    color: #077eff;
+    cursor: pointer;
+}
+
+.chat-input input.editing {
+    outline: 2px solid #077eff;
+}
