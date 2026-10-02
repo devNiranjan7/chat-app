@@ -18,10 +18,17 @@ import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
 
-const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
+const ChatBox = ({
+    selectedFriend,
+    setSelectedFriend,
+    setShowProfile,
+    messages,
+    setMessages,
+}) => {
     const { user, userData } = useContext(AppContext);
-    const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
+    const uid = user?.uid;
+    const friendId = selectedFriend?.id;
     const [sending, setSending] = useState(false);
     const chatMessagesRef = useRef(null);
 
@@ -33,43 +40,37 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
     };
 
     useEffect(() => {
-        if (!user || !selectedFriend) {
-            setMessages([]);
+        setMessages([]);
+        if (!uid || !friendId) {
             return;
         }
-
-        const chatId = getChatId(user.uid, selectedFriend.id);
+        const chatId = getChatId(uid, friendId);
         const chatRef = doc(db, "chats", chatId);
-
         let unsubscribeMessages = null;
         let cancelled = false;
-
         const initializeChat = async () => {
             try {
                 await setDoc(
                     chatRef,
-                    {
-                        participants: [user.uid, selectedFriend.id].sort(),
-                    },
+                    { participants: [uid, friendId].sort() },
                     { merge: true },
                 );
                 if (cancelled) {
                     return;
                 }
-                const messagesRef = collection(chatRef, "messages");
                 const messagesQuery = query(
-                    messagesRef,
+                    collection(chatRef, "messages"),
                     orderBy("createdAt", "asc"),
                 );
                 unsubscribeMessages = onSnapshot(
                     messagesQuery,
                     (snapshot) => {
-                        const messagesData = snapshot.docs.map((doc) => ({
-                            id: doc.id,
-                            ...doc.data(),
-                        }));
-
-                        setMessages(messagesData);
+                        setMessages(
+                            snapshot.docs.map((messageDoc) => ({
+                                id: messageDoc.id,
+                                ...messageDoc.data(),
+                            })),
+                        );
                     },
                     (error) => {
                         console.error("Messages listener error:", error);
@@ -84,12 +85,11 @@ const ChatBox = ({ selectedFriend, setSelectedFriend, setShowProfile }) => {
         initializeChat();
         return () => {
             cancelled = true;
-
             if (unsubscribeMessages) {
                 unsubscribeMessages();
             }
         };
-    }, [user, selectedFriend]);
+    }, [uid, friendId, setMessages]);
 
     useEffect(() => {
         scrollToBottom();
