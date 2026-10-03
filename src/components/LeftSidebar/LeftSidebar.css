@@ -259,3 +259,12 @@
     align-items: center;
     justify-content: center;
 }
+
+.ls .friends p .presence-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #2ecc71;
+}

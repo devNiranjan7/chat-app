@@ -1,7 +1,8 @@
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { createContext, useEffect, useState } from "react";
 import { auth, db } from "../config/firebase.js";
 import { doc, onSnapshot } from "firebase/firestore";
+import { markOffline, usePresence } from "../lib/presence.js";
 
 export const AppContext = createContext();
 
@@ -9,6 +10,8 @@ const AppContextProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    usePresence(user?.uid);
 
     useEffect(() => {
         let unsubscribeUserData = () => {};
@@ -42,10 +45,16 @@ const AppContextProvider = ({ children }) => {
         };
     }, []);
 
+    const logout = async () => {
+        await markOffline();
+        await signOut(auth);
+    };
+
     const value = {
         user,
         loading,
         userData,
+        logout,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

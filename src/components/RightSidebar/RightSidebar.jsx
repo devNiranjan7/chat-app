@@ -3,6 +3,7 @@ import { signOut } from "firebase/auth";
 import { toast } from "react-toastify";
 import assets from "../../assets/assets.js";
 import { auth } from "../../config/firebase.js";
+import { formatLastSeen, markOffline } from "../../lib/presence.js";
 import "./RightSidebar.css";
 
 const RightSidebar = ({
@@ -10,8 +11,17 @@ const RightSidebar = ({
     showProfile,
     setShowProfile,
     messages = [],
+    presence = {},
 }) => {
     const [loggingOut, setLoggingOut] = useState(false);
+    const friendPresence = selectedFriend
+        ? presence[selectedFriend.id]
+        : undefined;
+    const friendOnline = !!friendPresence?.online;
+    const lastSeenText =
+        !friendOnline && friendPresence?.lastOnline
+            ? formatLastSeen(friendPresence.lastOnline)
+            : "";
 
     const media = useMemo(
         () =>
@@ -28,6 +38,7 @@ const RightSidebar = ({
         }
         setLoggingOut(true);
         try {
+            await markOffline();
             await signOut(auth);
             toast.success("Logged out successfully!");
         } catch (error) {
@@ -64,12 +75,19 @@ const RightSidebar = ({
                         />
                         <h3>
                             {selectedFriend.username}
-                            <img
-                                src={assets.green_dot}
-                                className="dot"
-                                alt="green-dot"
-                            />
+                            {friendOnline && (
+                                <img
+                                    src={assets.green_dot}
+                                    className="dot"
+                                    alt="online"
+                                />
+                            )}
                         </h3>
+                        {lastSeenText && (
+                            <span className="last-seen rs-last-seen">
+                                {lastSeenText}
+                            </span>
+                        )}
                         <p>
                             {selectedFriend.bio ||
                                 "Hey there! I am using this chat app."}

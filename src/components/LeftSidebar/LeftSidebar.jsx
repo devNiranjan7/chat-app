@@ -2,8 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import assets from "../../assets/assets.js";
 import "./LeftSidebar.css";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth, db } from "../../config/firebase.js";
+import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import { AppContext } from "../../context/AppContext.jsx";
 import getChatId from "../../lib/getChatId.js";
@@ -20,8 +19,13 @@ import {
     where,
     writeBatch,
 } from "firebase/firestore";
-const LeftSidebar = ({ selectedFriend, setSelectedFriend, chats = {} }) => {
-    const { user, userData } = useContext(AppContext);
+const LeftSidebar = ({
+    selectedFriend,
+    setSelectedFriend,
+    chats = {},
+    presence = {},
+}) => {
+    const { user, userData, logout } = useContext(AppContext);
     const [search, setSearch] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [showMenu, setShowMenu] = useState(false);
@@ -116,7 +120,7 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend, chats = {} }) => {
         if (loggingOut) return;
         setLoggingOut(true);
         try {
-            await signOut(auth);
+            await logout();
             setShowMenu(false);
             toast.success("Logged out successfully!");
         } catch (error) {
@@ -385,7 +389,15 @@ const LeftSidebar = ({ selectedFriend, setSelectedFriend, chats = {} }) => {
                                 alt="profile"
                             />
                             <div>
-                                <p>{item.username}</p>
+                                <p>
+                                    {item.username}
+                                    {presence[item.id]?.online && (
+                                        <span
+                                            className="presence-dot"
+                                            title="Online"
+                                        />
+                                    )}
+                                </p>
                                 <span>{item.bio || "Hey There!"}</span>
                             </div>
                             {unread > 0 && selectedFriend?.id !== item.id && (

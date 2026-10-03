@@ -117,3 +117,15 @@
 .rs button:hover {
     background: #066fe0;
 }
+
+.last-seen {
+    font-size: 12px;
+    font-weight: 400;
+    color: #777;
+    margin-left: 8px;
+}
+
+.rs-last-seen {
+    display: block;
+    margin: 4px 0 0;
+}

@@ -14,16 +14,30 @@ import RightSidebar from "../../components/RightSidebar/RightSidebar.jsx";
 import { AppContext } from "../../context/AppContext.jsx";
 import { db } from "../../config/firebase.js";
 import getChatId from "../../lib/getChatId.js";
+import { subscribeToPresence } from "../../lib/presence.js";
 import "./Chat.css";
 
 const Chat = () => {
-    const { user } = useContext(AppContext);
+    const { user, userData } = useContext(AppContext);
     const uid = user?.uid;
     const [selectedFriend, setSelectedFriend] = useState(null);
     const [showProfile, setShowProfile] = useState(false);
     const [messages, setMessages] = useState([]);
     const [chats, setChats] = useState({});
     const deliveredMarks = useRef({});
+    const [presence, setPresence] = useState({});
+    const friendKey = (userData?.friends ?? []).join(",");
+
+    useEffect(() => {
+        const friendIds = friendKey ? friendKey.split(",") : [];
+        if (friendIds.length === 0) {
+            setPresence({});
+            return;
+        }
+        return subscribeToPresence(friendIds, (friendId, status) => {
+            setPresence((prev) => ({ ...prev, [friendId]: status }));
+        });
+    }, [friendKey]);
 
     useEffect(() => {
         if (!uid) {
@@ -49,7 +63,7 @@ const Chat = () => {
         );
         return () => unsubscribe();
     }, [uid]);
-
+    
     useEffect(() => {
         if (!uid) {
             return;
@@ -92,6 +106,7 @@ const Chat = () => {
                         setShowProfile(false);
                     }}
                     chats={chats}
+                    presence={presence}
                 />
                 <ChatBox
                     selectedFriend={selectedFriend}
@@ -100,12 +115,14 @@ const Chat = () => {
                     messages={messages}
                     setMessages={setMessages}
                     chat={selectedChat}
+                    presence={presence}
                 />
                 <RightSidebar
                     selectedFriend={selectedFriend}
                     showProfile={showProfile}
                     setShowProfile={setShowProfile}
                     messages={messages}
+                    presence={presence}
                 />
             </div>
         </div>

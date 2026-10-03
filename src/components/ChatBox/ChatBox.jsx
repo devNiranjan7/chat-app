@@ -19,6 +19,7 @@ import {
 import { db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import uploadToCloudinary from "../../lib/uploadToCloudinary.js";
+import { formatLastSeen } from "../../lib/presence.js";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
@@ -29,11 +30,18 @@ const ChatBox = ({
     messages,
     setMessages,
     chat,
+    presence = {},
 }) => {
     const { user, userData } = useContext(AppContext);
     const [message, setMessage] = useState("");
     const uid = user?.uid;
     const friendId = selectedFriend?.id;
+    const friendPresence = friendId ? presence[friendId] : undefined;
+    const friendOnline = !!friendPresence?.online;
+    const lastSeenText =
+        !friendOnline && friendPresence?.lastOnline
+            ? formatLastSeen(friendPresence.lastOnline)
+            : "";
     const [sending, setSending] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [now, setNow] = useState(Date.now());
@@ -98,10 +106,7 @@ const ChatBox = ({
         }
         const unreadCount = chat?.unread?.[uid] ?? 0;
         const lastRead = chat?.lastReadAt?.[uid]?.toMillis?.() ?? 0;
-        if (
-            unreadCount === 0 &&
-            lastRead >= lastFriendMsg.createdAt.toMillis()
-        ) {
+        if (unreadCount === 0 && lastRead >= lastFriendMsg.createdAt.toMillis()) {
             return;
         }
         const key = `${friendId}:${lastFriendMsg.id}`;
@@ -322,6 +327,7 @@ const ChatBox = ({
             setSending(false);
         }
     };
+
     const handleDeleteMessage = async (msg) => {
         if (!user?.uid || !selectedFriend?.id || sending) {
             return;
@@ -374,12 +380,15 @@ const ChatBox = ({
                 />
                 <p>
                     {selectedFriend?.username || "Select a friend"}
-                    {selectedFriend && (
+                    {friendOnline && (
                         <img
                             className="dot"
                             src={assets.green_dot}
-                            alt="green-dot"
+                            alt="online"
                         />
+                    )}
+                    {lastSeenText && (
+                        <span className="last-seen">{lastSeenText}</span>
                     )}
                 </p>
                 <img
