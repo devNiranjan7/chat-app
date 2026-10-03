@@ -25,9 +25,13 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: "Invalid token" });
         }
         const lookupData = await lookup.json();
-        const uid = lookupData.users?.[0]?.localId;
+        const account = lookupData.users?.[0];
+        const uid = account?.localId;
         if (!uid) {
             return res.status(401).json({ error: "Invalid token" });
+        }
+        if (!account.emailVerified) {
+            return res.status(403).json({ error: "Verify your email first" });
         }
         const timestamp = Math.round(Date.now() / 1000);
         const folder = `chat-app/${uid}`;

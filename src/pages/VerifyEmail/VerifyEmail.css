@@ -1,0 +1,62 @@
+.verify {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #001030;
+}
+
+.verify-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 30px 28px;
+    border-radius: 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-align: center;
+}
+
+.verify-card h2 {
+    color: #393939;
+}
+
+.verify-card p {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.verify-hint {
+    font-size: 12px;
+}
+
+.verify-card button {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #077eff;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.verify-card button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.verify-card button.verify-secondary {
+    background: #fff;
+    color: #077eff;
+    border: 1px solid #077eff;
+}
+
+.verify-logout {
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 13px;
+}

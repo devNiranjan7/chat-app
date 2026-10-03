@@ -10,6 +10,7 @@ import {
 import { auth, db } from "../../config/firebase.js";
 import { toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore";
+import sendVerification from "../../lib/sendVerification.js";
 
 const Login = () => {
     const [currState, setCurrState] = useState("Login");
@@ -39,7 +40,17 @@ const Login = () => {
                     bio: "",
                     friends: [],
                 });
-                toast.success("Account created successfully");
+                try {
+                    await sendVerification(userCredential.user);
+                    toast.success(
+                        "Account created! Check your email to verify it.",
+                    );
+                } catch (mailError) {
+                    console.error("Verification email failed:", mailError);
+                    toast.info(
+                        "Account created. We couldn't send the verification email yet, use Resend on the next screen.",
+                    );
+                }
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
                 toast.success("Login successful");
@@ -115,7 +126,8 @@ const Login = () => {
                         className="form-input"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        required maxLength={30}
+                        required
+                        maxLength={30}
                     />
                 )}
                 <input
