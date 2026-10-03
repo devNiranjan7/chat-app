@@ -35,8 +35,9 @@ export default async function handler(req, res) {
         }
         const timestamp = Math.round(Date.now() / 1000);
         const folder = `chat-app/${uid}`;
+        const tags = `user-${uid}`;
         const allowedFormats = "jpg,png";
-        const toSign = `allowed_formats=${allowedFormats}&folder=${folder}&timestamp=${timestamp}`;
+        const toSign = `allowed_formats=${allowedFormats}&folder=${folder}&tags=${tags}&timestamp=${timestamp}`;
         const signature = crypto
             .createHash("sha1")
             .update(toSign + env.CLOUDINARY_API_SECRET)
@@ -46,6 +47,7 @@ export default async function handler(req, res) {
             signature,
             timestamp,
             folder,
+            tags,
             allowedFormats,
             apiKey: env.CLOUDINARY_API_KEY,
             cloudName: env.CLOUDINARY_CLOUD_NAME,

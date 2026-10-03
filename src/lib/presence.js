@@ -101,3 +101,17 @@ export const formatLastSeen = (ms) => {
     const day = date.toLocaleDateString([], { day: "numeric", month: "short" });
     return `Last seen ${day} at ${time}`;
 };
+
+export const clearPresence = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+        return;
+    }
+    try {
+        const statusRef = ref(rtdb, `status/${uid}`);
+        await onDisconnect(statusRef).cancel();
+        await remove(statusRef);
+    } catch (error) {
+        console.warn("Failed to clear presence:", error.code || error);
+    }
+};

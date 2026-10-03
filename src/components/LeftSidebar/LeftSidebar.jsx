@@ -26,6 +26,8 @@ import {
     where,
     writeBatch,
 } from "firebase/firestore";
+import DeleteAccountModal from "../DeleteAccountModal/DeleteAccountModal.jsx";
+
 const LeftSidebar = ({
     selectedFriend,
     setSelectedFriend,
@@ -41,6 +43,7 @@ const LeftSidebar = ({
     const [loadingRequest, setLoadingRequest] = useState(null);
     const [processingRequest, setProcessingRequest] = useState(null);
     const [loggingOut, setLoggingOut] = useState(false);
+    const [showDeleteAccount, setShowDeleteAccount] = useState(false);
     const navigate = useNavigate();
     const notificationSettings = useNotificationSettings();
     const desktopAvailable = desktopSupported();
@@ -341,6 +344,16 @@ const LeftSidebar = ({
                                 <p onClick={handleLogout}>
                                     {loggingOut ? "Logging out..." : "Logout"}
                                 </p>
+                                <hr />
+                                <p
+                                    className="menu-danger"
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        setShowDeleteAccount(true);
+                                    }}
+                                >
+                                    Delete account
+                                </p>
                             </div>
                         )}
                     </div>
@@ -468,6 +481,12 @@ const LeftSidebar = ({
                     );
                 })}
             </div>
+            {showDeleteAccount && (
+                <DeleteAccountModal
+                    onClose={() => setShowDeleteAccount(false)}
+                    onStart={() => setSelectedFriend(null)}
+                />
+            )}
         </div>
     );
 };

@@ -17,6 +17,7 @@ import getChatId from "../../lib/getChatId.js";
 import { subscribeToPresence } from "../../lib/presence.js";
 import { useNotifications } from "../../lib/useNotifications.js";
 import "./Chat.css";
+import { toast } from "react-toastify";
 
 const Chat = () => {
     const { user, userData } = useContext(AppContext);
@@ -90,6 +91,19 @@ const Chat = () => {
             }
         });
     }, [chats, uid]);
+
+    useEffect(() => {
+        if (!selectedFriend || !userData) {
+            return;
+        }
+        if (!(userData.friends ?? []).includes(selectedFriend.id)) {
+            toast.info(
+                `${selectedFriend.username} is no longer in your friends list`,
+            );
+            setSelectedFriend(null);
+            setShowProfile(false);
+        }
+    }, [userData, selectedFriend]);
 
     useNotifications({
         uid,

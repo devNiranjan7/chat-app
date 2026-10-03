@@ -20,6 +20,7 @@ const uploadToCloudinary = async (file) => {
     formData.append("timestamp", sign.timestamp);
     formData.append("signature", sign.signature);
     formData.append("folder", sign.folder);
+    formData.append("tags", sign.tags);
     formData.append("allowed_formats", sign.allowedFormats);
     const response = await fetch(
         `https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`,

@@ -106,7 +106,10 @@ const ChatBox = ({
         }
         const unreadCount = chat?.unread?.[uid] ?? 0;
         const lastRead = chat?.lastReadAt?.[uid]?.toMillis?.() ?? 0;
-        if (unreadCount === 0 && lastRead >= lastFriendMsg.createdAt.toMillis()) {
+        if (
+            unreadCount === 0 &&
+            lastRead >= lastFriendMsg.createdAt.toMillis()
+        ) {
             return;
         }
         const key = `${friendId}:${lastFriendMsg.id}`;
@@ -174,7 +177,9 @@ const ChatBox = ({
                     },
                     (error) => {
                         console.error("Messages listener error:", error);
-                        toast.error("Failed to load messages");
+                        if (error.code !== "permission-denied") {
+                            toast.error("Failed to load messages");
+                        }
                     },
                 );
             } catch (error) {
