@@ -1,104 +1,130 @@
 # Chat App
 
-A real-time chat application built with **React, Firebase, and Cloudinary**, deployed on **Vercel**.
+A real-time chat application built with React, Firebase, and Cloudinary. It includes email verification, friend requests, profile management, and real-time messaging with image sharing.
 
-Users can create accounts, manage their profiles, send and accept friend requests, exchange real-time messages with friends, share images, and view shared media. The interface is responsive and works across desktop and mobile devices.
-
-**Live demo:** [chat-app-sandy-one-18.vercel.app](https://chat-app-sandy-one-18.vercel.app)
+Live demo: https://chat-app-sandy-one-18.vercel.app
 
 ## Features
 
 ### Authentication
-
-- User registration
-- User login
-- Logout
+- Email/password sign up and sign in
 - Password reset
-- Firebase Authentication (email/password)
-- Session persistence
+- Email verification flow
+- Protected routes for authenticated users
+- Firebase session persistence
 
 ### Friends
-
 - Search users by username
 - Send friend requests
 - Accept or reject incoming requests
-- Real-time user data
-- Friend list
+- Friend list management
+- Real-time presence status for friends
 
 ### Messaging
-
-- Real-time text messaging
-- Image messaging (JPG/PNG, up to 5 MB)
-- Separate conversation for each friend (friends only)
+- Real-time text chat
+- One-to-one conversations between mutual friends
 - Message timestamps
-- Automatic scrolling to the latest message
+- Unread message tracking
+- Auto-scroll to latest message
+- Image message support via Cloudinary
 
 ### Profile
-
 - Update username
 - Update bio
 - Upload profile image
-- View a friend's profile and bio
-- View shared media
+- View a friend's profile and shared media
+- Shared media gallery from chat images
 
-### Responsive Design
-
+### Responsive UI
+- Mobile-friendly chat layout
+- Responsive sidebar navigation
 - Responsive login page
-- Responsive profile update page
-- Responsive chat interface
-- Mobile friend list
-- Mobile chat navigation
-- Mobile profile/sidebar navigation
-- Responsive message input
-- Responsive shared media section
+- Responsive profile update screen
 
 ## Tech Stack
 
 ### Frontend
+- React
+- Vite
+- React Router
+- CSS
 
-- **React**
-- **Vite**
-- **React Router**
-- **CSS**
+### Backend / Services
+- Firebase Authentication
+- Firestore
+- Firebase Realtime Database
+- Cloudinary
+- Vercel Serverless API
 
-### Backend & Services
+### Libraries
+- React Toastify
 
-- **Firebase Authentication**
-- **Firebase Firestore**
-- **Cloudinary** (image storage, signed uploads)
-- **Vercel Serverless Function** (`/api/sign-upload`) to authorize uploads
+## Project Structure
 
-### Other
-
-- **React Toastify**
+```bash
+chat-app/
+├── api/
+│   ├── sign-upload.js
+│   └── delete-images.js
+├── public/
+├── src/
+│   ├── assets/
+│   ├── components/
+│   │   ├── ChatBox/
+│   │   ├── DeleteAccountModal/
+│   │   ├── LeftSidebar/
+│   │   └── RightSidebar/
+│   ├── config/
+│   │   └── firebase.js
+│   ├── context/
+│   │   └── AppContext.jsx
+│   ├── lib/
+│   ├── pages/
+│   │   ├── Chat/
+│   │   ├── Login/
+│   │   ├── ProfileUpdate/
+│   │   └── VerifyEmail/
+│   ├── App.jsx
+│   ├── index.css
+│   ├── main.jsx
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package.json
+├── vercel.json
+├── vite.config.js
+├── README.md
+└── package-lock.json
+```
 
 ## Getting Started
 
 1. Clone the repository
 
-   ```
-   git clone https://github.com/devNiranjan7/chat-app.git
-   ```
+```bash
+git clone https://github.com/devNiranjan7/chat-app.git
+```
 
-2. Navigate to the project
+2. Navigate to the project folder
 
-   ```
-   cd chat-app
-   ```
+```bash
+cd chat-app
+```
 
 3. Install dependencies
 
-   ```
-   npm install
-   ```
+```bash
+npm install
+```
 
-### Environment Variables
+## Environment Variables
 
 Create a `.env` file in the root directory.
 
-**Client-side (exposed to the browser by Vite):**
+### Client-side variables
+These are used by Firebase in the frontend and must be exposed to Vite:
 
-```
+```env
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
@@ -108,116 +134,101 @@ VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_DATABASE_URL=
 ```
 
-**Server-side (used only by the `/api/sign-upload` function, never exposed to the browser):**
+### Server-side variables
+These are used by the Vercel serverless function for Cloudinary image signing:
 
-```
+```env
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 ```
 
-Add your own Firebase and Cloudinary values. The server-side variables must also be added in your Vercel project settings (Settings → Environment Variables) for the deployed site.
+> Never commit your `.env` file. The Cloudinary secret should never be pushed to the repository.
 
-> Never commit your `.env` file. In particular, `CLOUDINARY_API_SECRET` must never be pushed to the repository. If it is ever exposed, rotate it in the Cloudinary dashboard (Settings → API Keys) and update it in Vercel.
+## Firebase Setup
 
-### Firebase Setup
+This application uses Firebase for authentication, Firestore, and realtime features.
 
-The application uses Firebase for authentication and real-time database functionality.
-
-#### Firebase Authentication
-
-The project uses:
-
-- Email/Password authentication
+### Firebase Authentication
+- Email/password signup and login
 - Password reset
-- Session management
+- Email verification
+- Authorized domains must include your deployed app domain, such as:
+  - `your-app.vercel.app`
 
-Add your deployed domain (for example `your-app.vercel.app`) under **Authentication → Settings → Authorized domains**.
+### Firestore
+The app stores:
+- User profiles in `users`
+- Friend requests in `friendRequests`
+- Chats in `chats`
+- Messages in `chats/{chatId}/messages`
 
-#### Firestore
+### Firebase Realtime Database
+Used for presence and online/offline status tracking.
 
-Firestore stores:
+## Cloudinary Setup
 
-- User profiles (`users`)
-- Friend requests (`friendRequests`)
-- Chat documents (`chats`)
-- Messages (`chats/{chatId}/messages`)
+Cloudinary is used for uploading profile images and chat images.
 
-The application uses Firestore realtime listeners to keep user data and messages synchronized.
+The app uses signed uploads:
+1. The browser sends the Firebase ID token to `/api/sign-upload`
+2. The server validates the token
+3. A short-lived Cloudinary signature is returned
+4. The browser uploads the image directly to Cloudinary
 
-### Cloudinary
+Upload rules:
+- JPG/PNG only
+- Max file size: 5 MB
+- Each upload is scoped to a per-user folder:
+  - `chat-app/<uid>`
 
-Cloudinary is used for image uploads. Images are used for:
+## Running the App
 
-- Profile pictures
-- Chat messages
-- Shared media
+Start the Vite development server:
 
-Uploads use **signed uploads**:
-
-1. The browser sends its Firebase ID token to `/api/sign-upload`.
-2. The serverless function verifies the token and returns a short-lived Cloudinary signature.
-3. The browser uploads the image to Cloudinary with that signature.
-
-The signature restricts uploads to JPG/PNG and to a per-user folder (`chat-app/<uid>`). Only logged-in users can upload. No unsigned upload preset is used.
-
-### Run the Application
-
-Start the development server:
-
-```
+```bash
 npm run dev
 ```
 
-Vite will display the local development URL in the terminal.
+This starts the frontend locally. The local app can run without the API server for basic frontend work, but image uploads require the serverless function.
 
-> `npm run dev` does not run the `/api` serverless function, so image uploads will not work locally. To test uploads locally, use the [Vercel CLI](https://vercel.com/docs/cli) (`vercel dev`) or test on the deployed site.
+### Local upload testing
+Use Vercel CLI for full local environment behavior:
 
-### Production Build
-
-Create a production build:
-
+```bash
+vercel dev
 ```
+
+## Production Build
+
+```bash
 npm run build
 ```
 
 Preview the production build locally:
 
-```
+```bash
 npm run preview
 ```
 
-### Deployment (Vercel)
+## Deployment on Vercel
 
-1. Import the repository in Vercel.
-2. Add all environment variables listed above (client-side and server-side).
-3. Make sure `vercel.json` does not rewrite `/api` routes to `index.html`, for example:
+1. Import the repository into Vercel
+2. Add all required environment variables
+3. Deploy the app
+4. Ensure your Firebase authorized domain matches the deployment URL
 
-   ```json
-   { "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }] }
-   ```
-
-4. Redeploy after adding or changing environment variables, since they only apply to new deployments.
-
-## Firestore Security
-
-Firestore security rules (set in the Firebase console under Firestore → Rules) require users to be authenticated and enforce the following:
-
-- **Profiles:** any signed-in user can read profiles; users can edit only their own username, bio, and profile image, with length limits. Profiles do not store email addresses.
-- **Friends:** a friend can be added to a friends list only through a valid friend request. Existing friends cannot be removed or duplicated, and a user can add themselves to a sender's list only while that sender's request to them is pending.
-- **Friend requests:** requests can be created only as yourself, to a different existing user, starting as `pending`, with the ID `<senderId>_<receiverId>`. Only the receiver can accept or reject. A sender can re-send after a rejection.
-- **Chats:** a chat can be created only between two distinct users who are mutual friends, with an ID derived from both user IDs. Only participants can read or update a chat, and participants cannot be changed after creation.
-- **Messages:** only chat participants can read and send messages, the sender must be the authenticated user, field types and sizes are validated, images must be Cloudinary URLs, and messages cannot be edited. Authors can delete their own messages.
+The project includes a `vercel.json` rewrite configuration so SPA routes work correctly while leaving `/api` routes intact.
 
 ## Core Functionality
 
-#### User Authentication
+### User Authentication
 
-Firebase Authentication manages user accounts and sessions.
+Firebase Authentication manages user accounts and sessions. Users create accounts with email and password, and the app requires email verification before accessing the chat features. The authentication state is persisted using Firebase sessions.
 
-#### User Profiles
+### User Profiles
 
-Each user profile document has:
+Each user profile document contains:
 
 - Username
 - Profile image
@@ -226,22 +237,24 @@ Each user profile document has:
 
 Email addresses are managed by Firebase Authentication and are not stored in profile documents.
 
-#### Friend System
+### Friend System
 
-Users send friend requests by searching for a username. The receiver can accept or reject the request. On acceptance, both users are added to each other's friends list.
+Users can search for other users by their username. When a user sends a friend request, it is stored in the `friendRequests` collection with a status of `pending`. The receiver can then accept or reject the request. On acceptance, both users are added to each other's friends list, and they can now send messages to each other.
 
-#### Chat System
+### Chat System
 
-Each conversation has a unique chat ID generated from the two participating user IDs (sorted and joined with `_`).
+Each conversation has a unique chat ID generated from the two participating user IDs (sorted and joined with `_`). For example, if user `alice` chats with user `bob`, the chat ID is `alice_bob`.
 
-Messages are stored in a `messages` subcollection inside the corresponding chat document. The chat document stores the participants and the last message preview.
+Messages are stored in a `messages` subcollection inside the corresponding chat document. The chat document itself stores the participants, unread message counts, delivery timestamps, and a preview of the last message.
 
-#### Image Messaging
+### Image Messaging
 
-Images are uploaded to Cloudinary using a signed upload, and the resulting secure URL is stored in Firestore as part of the message. The shared media panel is built from the messages already loaded for the open chat.
+Images are uploaded to Cloudinary using a signed upload. The resulting secure Cloudinary URL is stored in Firestore as part of the message object. The shared media panel on the right sidebar displays all images from the currently open chat by filtering the loaded messages for those with image URLs.
+
+---
 
 [GitHub Repository](https://github.com/devNiranjan7/chat-app)
 
-### License
+## License
 
 This project is created for learning and portfolio purposes.
