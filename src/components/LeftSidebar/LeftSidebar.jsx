@@ -7,6 +7,13 @@ import { toast } from "react-toastify";
 import { AppContext } from "../../context/AppContext.jsx";
 import getChatId from "../../lib/getChatId.js";
 import {
+    desktopSupported,
+    enableDesktopAlerts,
+    playNotificationSound,
+    setNotificationSetting,
+    useNotificationSettings,
+} from "../../lib/notifications.js";
+import {
     arrayUnion,
     collection,
     doc,
@@ -35,6 +42,44 @@ const LeftSidebar = ({
     const [processingRequest, setProcessingRequest] = useState(null);
     const [loggingOut, setLoggingOut] = useState(false);
     const navigate = useNavigate();
+    const notificationSettings = useNotificationSettings();
+    const desktopAvailable = desktopSupported();
+    const desktopActive =
+        desktopAvailable &&
+        notificationSettings.desktop &&
+        Notification.permission === "granted";
+
+    const handleToggleSound = () => {
+        const next = !notificationSettings.sound;
+        setNotificationSetting("sound", next);
+        if (next) {
+            playNotificationSound({ force: true });
+        }
+    };
+
+    const handleToggleDesktop = async () => {
+        if (!desktopAvailable) {
+            toast.info(
+                "This browser can't show desktop notifications. You'll see in-app alerts instead.",
+            );
+            return;
+        }
+        if (desktopActive) {
+            setNotificationSetting("desktop", false);
+            return;
+        }
+        const permission = await enableDesktopAlerts();
+        setNotificationSetting("desktop", permission === "granted");
+        if (permission === "granted") {
+            toast.success("Desktop alerts are on");
+        } else if (permission === "denied") {
+            toast.error(
+                "Notifications are blocked. Allow them in your browser's site settings, then try again.",
+            );
+        } else {
+            toast.info("Desktop alerts were not enabled");
+        }
+    };
 
     useEffect(() => {
         const usersRef = collection(db, "users");
@@ -277,6 +322,20 @@ const LeftSidebar = ({
                                     }}
                                 >
                                     Edit Profile
+                                </p>
+                                <hr />
+                                <p onClick={handleToggleSound}>
+                                    Sound:{" "}
+                                    {notificationSettings.sound ? "On" : "Off"}
+                                </p>
+                                <hr />
+                                <p onClick={handleToggleDesktop}>
+                                    Desktop alerts:{" "}
+                                    {!desktopAvailable
+                                        ? "Unavailable"
+                                        : desktopActive
+                                          ? "On"
+                                          : "Off"}
                                 </p>
                                 <hr />
                                 <p onClick={handleLogout}>

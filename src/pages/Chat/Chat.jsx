@@ -15,6 +15,7 @@ import { AppContext } from "../../context/AppContext.jsx";
 import { db } from "../../config/firebase.js";
 import getChatId from "../../lib/getChatId.js";
 import { subscribeToPresence } from "../../lib/presence.js";
+import { useNotifications } from "../../lib/useNotifications.js";
 import "./Chat.css";
 
 const Chat = () => {
@@ -24,6 +25,7 @@ const Chat = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [messages, setMessages] = useState([]);
     const [chats, setChats] = useState({});
+    const [chatsLoaded, setChatsLoaded] = useState(false);
     const deliveredMarks = useRef({});
     const [presence, setPresence] = useState({});
     const friendKey = (userData?.friends ?? []).join(",");
@@ -42,6 +44,7 @@ const Chat = () => {
     useEffect(() => {
         if (!uid) {
             setChats({});
+            setChatsLoaded(false);
             return;
         }
         const chatsQuery = query(
@@ -56,6 +59,7 @@ const Chat = () => {
                     next[chatDoc.id] = chatDoc.data();
                 });
                 setChats(next);
+                setChatsLoaded(true);
             },
             (error) => {
                 console.error("Chats listener error:", error);
@@ -63,7 +67,7 @@ const Chat = () => {
         );
         return () => unsubscribe();
     }, [uid]);
-    
+
     useEffect(() => {
         if (!uid) {
             return;
@@ -86,6 +90,17 @@ const Chat = () => {
             }
         });
     }, [chats, uid]);
+
+    useNotifications({
+        uid,
+        chats,
+        chatsLoaded,
+        selectedFriendId: selectedFriend?.id,
+        onOpenChat: (friend) => {
+            setSelectedFriend(friend);
+            setShowProfile(false);
+        },
+    });
 
     const selectedChat =
         uid && selectedFriend
