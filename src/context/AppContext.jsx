@@ -1,10 +1,25 @@
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { createContext, useCallback, useEffect, useState } from "react";
 import { auth, db } from "../config/firebase.js";
-import { disableNetwork, doc, enableNetwork, onSnapshot } from "firebase/firestore";
+import {
+    disableNetwork,
+    doc,
+    enableNetwork,
+    onSnapshot,
+} from "firebase/firestore";
 import { markOffline, usePresence } from "../lib/presence.js";
 
 export const AppContext = createContext();
+
+const ensureVerifiedToken = async (currentUser) => {
+    const { claims } = await currentUser.getIdTokenResult();
+    if (claims.email_verified === true) {
+        return;
+    }
+    await currentUser.getIdToken(true);
+    await disableNetwork(db);
+    await enableNetwork(db);
+};
 
 const AppContextProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -16,34 +31,48 @@ const AppContextProvider = ({ children }) => {
 
     useEffect(() => {
         let unsubscribeUserData = () => {};
-        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setEmailVerified(!!currentUser?.emailVerified);
-            if (currentUser) {
-                const userRef = doc(db, "users", currentUser.uid);
-                unsubscribeUserData = onSnapshot(
-                    userRef,
-                    (snapshot) => {
-                        if (snapshot.exists()) {
-                            setUserData(snapshot.data());
-                        } else {
-                            setUserData(null);
-                        }
-                    },
-                    (error) => {
-                        console.error("User data listener error:", error);
-                        setUserData(null);
-                    },
-                );
-            } else {
+        let runId = 0;
+        const unsubscribeAuth = onAuthStateChanged(
+            auth,
+            async (currentUser) => {
+                const myRun = ++runId;
                 unsubscribeUserData();
                 unsubscribeUserData = () => {};
-                setUserData(null);
-            }
-            setLoading(false);
-        });
+                if (currentUser?.emailVerified) {
+                    try {
+                        await ensureVerifiedToken(currentUser);
+                    } catch (error) {
+                        console.warn("Token refresh failed:", error);
+                    }
+                    if (myRun !== runId) {
+                        return;
+                    }
+                }
+                setUser(currentUser);
+                setEmailVerified(!!currentUser?.emailVerified);
+                if (currentUser) {
+                    unsubscribeUserData = onSnapshot(
+                        doc(db, "users", currentUser.uid),
+                        (snapshot) => {
+                            setUserData(
+                                snapshot.exists() ? snapshot.data() : null,
+                            );
+                        },
+                        (error) => {
+                            console.error("User data listener error:", error);
+                            setUserData(null);
+                        },
+                    );
+                } else {
+                    setUserData(null);
+                }
+                setLoading(false);
+            },
+        );
         return () => {
-            (unsubscribeAuth(), unsubscribeUserData());
+            runId += 1;
+            unsubscribeAuth();
+            unsubscribeUserData();
         };
     }, []);
 
@@ -56,9 +85,7 @@ const AppContextProvider = ({ children }) => {
         if (!current.emailVerified) {
             return false;
         }
-        await current.getIdToken(true);
-        await disableNetwork(db);
-        await enableNetwork(db);
+        await ensureVerifiedToken(current);
         setEmailVerified(true);
         return true;
     }, []);
