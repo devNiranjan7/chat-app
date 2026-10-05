@@ -1,7 +1,7 @@
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { createContext, useCallback, useEffect, useState } from "react";
 import { auth, db } from "../config/firebase.js";
-import { doc, onSnapshot } from "firebase/firestore";
+import { disableNetwork, doc, enableNetwork, onSnapshot } from "firebase/firestore";
 import { markOffline, usePresence } from "../lib/presence.js";
 
 export const AppContext = createContext();
@@ -57,6 +57,8 @@ const AppContextProvider = ({ children }) => {
             return false;
         }
         await current.getIdToken(true);
+        await disableNetwork(db);
+        await enableNetwork(db);
         setEmailVerified(true);
         return true;
     }, []);
